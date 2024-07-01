@@ -18,29 +18,7 @@ import glob
 import shutil
 from models import load_textdetector_model, dispatch_textdetector,  dispatch_inpainting, load_inpainting_model, OCRMIT48pxCTC
 
-from manga_ocr import MangaOcr
-from google.cloud import vision
-from openai import OpenAI 
-
-# setup_params = OCRMIT48pxCTC.setup_params
-# setup_params['device']['select'] = 'cuda' if torch.cuda.is_available() else 'cpu'
-# setup_params['chunk_size']['select'] = 16
-# ocr = OCRMIT48pxCTC(**setup_params)
-
-import easyocr
-reader = easyocr.Reader(['en'])
-# reader = easyocr.Reader(['en'], detection='DB', recognition = 'Transformer')
-# result = reader.readtext('chinese.jpg')
-
-# os.environ["GOOGLE_APPLICATION_CREDENTIALS"]="secrets.json"
-
-# client = vision.ImageAnnotatorClient()
-
-# def ggocr(img):
-#     image = vision.Image(content=content)
-#     response = client.text_detection(image=image)
-#     texts = response.text_annotations
-#     return texts
+from openai import OpenAI
 
 with open('api_key.txt', 'r') as f:
     key = f.readline().strip()
@@ -52,9 +30,6 @@ openai_client = OpenAI(api_key=key)
 use_cuda = torch.cuda.is_available()
 
 load_inpainting_model(use_cuda, 'default')
-
-# mocr = MangaOcr()
-# load_textdetector_model(use_cuda)
 
 def chatgpt(bb_list, img):
     content = [
@@ -168,84 +143,6 @@ def infer(img, imgb64, foldername, filename, lang, tech):
     for sentence in response.split("\n"):
         if len(sentence.strip()) > 0:
             final_text.append(sentence.strip().split("#")[2])
-
-    # texts = []
-    # for bbox in bboxes:
-    #     xmin, ymin, w, h = bbox
-    #     xmax = xmin + w
-    #     ymax = ymin + h
-    #     xmin = 0 if xmin < 0 else xmin
-    #     ymin = 0 if ymin < 0 else ymin
-    #     xmax = img.shape[1] if xmax >  img.shape[1] else xmax
-    #     ymax = img.shape[0] if ymax >  img.shape[0] else ymax
-    #     #IMPORTANT ===================================================================================
-    #     if lang == "jp":
-    #         text = mocr(Image.fromarray(img[int(ymin):int(ymax), int(xmin):int(xmax), :]))
-    #     elif lang == "en":
-    #         text = " ".join(reader.readtext(img[int(ymin):int(ymax), int(xmin):int(xmax), :], detail=0))
-    #         text = text.lower()
-    #     if use_cuda:
-    #         torch.cuda.empty_cache()
-    #     texts.append(text)
-
-    # frames = [[0, img.shape[0],int(img.shape[1]/2), img.shape[1]], [0, img.shape[0], 0, int(img.shape[1]/2)]]
-    # frame_img = np.zeros_like(mask)
-    # frame_boxes = []
-    # frame_texts = []
-
-    # for i, frame in enumerate(frames):
-    #     ymin, ymax, xmin, xmax = frame
-    #     xmin = 0 if xmin < 0 else xmin
-    #     ymin = 0 if ymin < 0 else ymin
-    #     xmax = img.shape[1] if xmax >  img.shape[1] else xmax
-    #     ymax = img.shape[0] if ymax >  img.shape[0] else ymax
-    #     frame_img[ymin: ymax, xmin:xmax] = i+1
-    #     frame_boxes.append([])
-    #     frame_texts.append([])
-
-    # for bbox, text in zip(bboxes,texts):
-    #     xmin, ymin, w, h = bbox
-    #     xmax = xmin + w
-    #     ymax = ymin + h
-    #     xmin = 0 if xmin < 0 else xmin
-    #     ymin = 0 if ymin < 0 else ymin
-    #     xmax = img.shape[1] if xmax >  img.shape[1] else xmax
-    #     ymax = img.shape[0] if ymax >  img.shape[0] else ymax
-    #     index = np.bincount(np.ravel(frame_img[int(ymin):int(ymax), int(xmin):int(xmax)])).argmax()
-    #     if index > 0:
-    #         frame_boxes[int(index-1)].append(bbox)
-    #         frame_texts[int(index-1)].append(text)
-
-    # final_text = []
-    # final_bboxes = None
-
-    # if lang=="jp" or lang=="en":
-    #     for _bboxes, _texts in zip(frame_boxes, frame_texts):
-    #         if len(_bboxes) != 0:
-    #             a = np.array(_bboxes)
-    #             arg =  np.argsort(a[:,1])
-    #             # arg = np.argsort(img.shape[1] - (a[:,0] + a[:,2]))
-    #             # arg1 =  np.argsort(a[:,1])
-    #             # arg = np.argsort(np.argsort(arg)*np.argsort(arg1)*(img.shape[1] - a[:,0])*(a[:,1]))
-    #             _texts = np.array(_texts)[arg.astype(int)]
-    #             final_text.append(separator.join(_texts))
-    #             if final_bboxes is None:
-    #                 final_bboxes = a[arg.astype(int)]
-    #             else:
-    #                 final_bboxes = np.concatenate((final_bboxes, a[arg.astype(int)]))
-
-    # elif lang=="enp":
-    #     for i, blk in enumerate(blk_list):
-    #         xmin, ymin, xmax, ymax = blk.xyxy
-    #         xmin = 0 if xmin < 0 else xmin
-    #         ymin = 0 if ymin < 0 else ymin
-    #         xmax = img.shape[1] if xmax >  img.shape[1] else xmax
-    #         ymax = img.shape[0] if ymax >  img.shape[0] else ymax
-    #         if final_bboxes is None:
-    #             final_bboxes = np.array([[xmin, ymin, xmax-xmin, ymax-ymin]])
-    #         else:
-    #             final_bboxes = np.concatenate((final_bboxes, np.array([[xmin, ymin, xmax-xmin, ymax-ymin]])))
-    #         final_text.append(" ".join(blk.text))
     
     text = separator.join(final_text)
     text_ref = separator.join(final_text)
