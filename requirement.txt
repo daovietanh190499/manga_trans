@@ -1,0 +1,6 @@
+python-multipart
+manga-ocr
+fastapi
+google-cloud-vision
+easyocr
+openai

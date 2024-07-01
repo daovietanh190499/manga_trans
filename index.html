@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="static/w3.css">
+	<style>
+		table {
+		  font-family: arial, sans-serif;
+		  border-collapse: collapse;
+		  width: 100%;
+		}
+		
+		td, th {
+		  border: 1px solid #dddddd;
+		  text-align: left;
+		  padding: 8px;
+		}
+		
+		tr:nth-child(even) {
+		  background-color: #dddddd;
+		}
+
+		.wrap-img {
+			width: 100%;
+            display: block;
+            position: relative;
+        }
+        .layer2 .text-box{
+            z-index: 1000;
+            display: flex;
+			background-color: rgba(0, 0, 0, .5);
+            position: absolute;
+			border: 2px dashed darkorange;
+			justify-content: center;
+			align-items: center;
+			color: rgba(255, 255, 255, .8);
+			font-weight: 900;
+        }
+		.text-box:hover {
+			cursor: pointer;
+		}
+		.text-box::before{
+			content: "" attr(title) "";
+			position: absolute;
+			border: 2px dashed darkorange;
+			top: -1rem;
+			left: 0px;
+			width: 100%;
+			height: 1rem;
+			background-color: rgba(0, 0, 0, .5);
+			color: rgba(255, 255, 255, .8);
+			font-weight: 900;
+			font-size: 0.9rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+		.wrap-img .layer1 {
+			width: 100%;
+			height: 100%;
+			position: absolute;
+			top: 0;
+			left: 0;
+			z-index: 500;
+		}
+		.layer2 {
+			width: 100%;
+			height: 100%;
+			position: relative;
+			z-index: 500;
+		}
+        img {
+            width: 100%;
+            background-color: #eee;
+            border-radius: 5px;
+        }
+		</style>
+    <title>Manga OCR</title>
+</head>
+<body style="width:100%; height:100%; display:flex; justify-content:space-between; padding:0; margin:0"></body>
+<div style="width:70%; height:100%; display:flex; justify-content:space-between; padding:0; margin:0">
+    <div style="width:50%; height:100%; padding: 20px">
+	<div style="display:flex; justify-content:space-between; width:100%; height:2.5rem">
+		<input type="file" id="fileUploadControl" webkitdirectory style="display:none">
+		<button style="width:45%; height:2.5rem" id="labelUpload">
+			Chọn thư mục input
+		</button>
+		<button style="width:45%; height:2.5rem; display:none" id="buttonUpload">
+			Chọn lại
+		</button>
+		<span style="width:45%; display:flex; justify-content:center; align-items:center" id="inputShow">0 Tệp được chọn</span>
+	</div>
+	<div style="width:100%; padding-top:30px; display:flex; justify-content: space-between;">
+		<input type="radio" name="tech" value="MangaOCR" id="MangaOCR" checked class="chngTech">
+		<label for="mangaocr">Manga OCR</label><br>
+		<input type="radio" name="tech" value="GoogleVision" id="GoogleVision" class="chngTech">
+		<label for="googlevision">Google Vision</label><br>
+
+		<input type="radio" name="language" value="jp" id="jp" checked class="chngLang">
+		<label for="jp">Japanese</label><br>
+		<input type="radio" name="language" value="en" id="en" class="chngLang">
+		<label for="en">English</label><br>
+	</div>
+	<div style="width:100%; padding-top:30px">
+		<button style="width:100%; height:2.5rem" id="scan">
+			Tiến hành quét
+		</button>
+	</div>
+	<div style="width:100%; padding-top:30px">
+		<div class="w3-light-grey w3-large">
+    			<div class="w3-container w3-green" style="width:0%; text-align: right;" id="progress">0%</div>
+  		</div>
+    	</div>
+	<div style="width:100%; padding-top:30px; display:flex; justify-content:space-between;">
+		<button style="width:30%; height:2.5rem" id="reset">
+			Reset
+		</button>
+		<button style="width:30%; height:2.5rem" id="prev">
+			<<< Trước
+		</button>
+		<button style="width:30%; height:2.5rem" id="next">
+			Sau >>>
+		</button>
+	</div>
+	<div style="width:100%; padding-top:30px; display:flex; justify-content:space-between;">
+		<span style="width: 60%;" id="filename">
+			no name
+		</span>
+		<button style="width:30%; height:2.5rem" id="generate">
+			Kết xuất
+		</button>
+	</div>
+	<div style="width:100%; padding-top:10px; display:flex; justify-content:space-between; height: 45vh; overflow-y: scroll;">
+		<table>
+			<tr>
+				<th>STT</th>
+				<th>Text</th>
+			</tr>
+			<tbody id="table_body">
+				<tr>
+					<td>No data</td>
+					<td>No data</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+    </div>
+    <div style="width:50%; height:100%; padding: 20px">
+		<div class="wrap-img" >
+			<img src="static/icon.jpg" style="width:100%" id="preview"/>
+			<div class="layer1">
+				<div class="layer2" id="wrap-result">
+				</div>
+			</div>
+		</div>
+    </div>
+</div>
+<div style="width: 30%; height:100vh; background-color: #ddd; display: flex; align-items: center; flex-direction: column; overflow-y: scroll; position: relative;">
+	<div style="width: 100%; height:10vh; display: flex; align-items: center; justify-content:center; position: absolute; top: 0; background-color: #ddd">
+		<div style="width: 95%; height:3rem; justify-content: center; align-items: center; display: flex; border-radius: 5px; background-color: #fff;">Lịch sử</div>
+	</div>
+	<div style="width: 100%; height:10vh; display: flex; align-items: center; justify-content:center; background-color: #ddd"></div>
+	<div style="width: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column;" id="history">
+	</div>
+</div>
+</body>
+<script>
+const endpoint = "http://" + window.location.host + "/"
+let inputDir = "0 Tệp được chọn"
+let total = 0
+let realTotal = 1
+let allImages = []
+let current_index = 0
+let current_text = []
+let current_bbox = []
+let current_order = []
+
+if (!window.localStorage.getItem("folder") || window.localStorage.getItem("folder") === "") {
+	window.localStorage.setItem("folder", uuidv4())
+}
+
+if (!window.localStorage.getItem("tech") || window.localStorage.getItem("tech") === "") {
+	window.localStorage.setItem("tech", "MangaOCR")
+} else {
+	document.getElementById(window.localStorage.getItem("tech")).checked = true;
+}
+
+if (!window.localStorage.getItem("lang") || window.localStorage.getItem("lang") === "") {
+	window.localStorage.setItem("lang", "jp")
+} else {
+	document.getElementById(window.localStorage.getItem("lang")).checked = true;
+}
+
+function update_folder() {
+	fetch("/folderlist").then(res => res.json())
+		.then(res => {
+			let str = ""
+			for (id in res['file_list']) {
+				let time = new Date(parseFloat(res['times'][id]) * 1000).toISOString().slice(11, 19);
+				str += `
+				<div style="width: 95%; height:3rem; justify-content: space-between; align-items: center; display: flex; border-radius: 5px; background-color: #fff; margin-top: 20px; padding-left: 10px; padding-right:10px" id="${res['file_list'][id]}">
+					<span>${res['file_list'][id]}</span>
+					<span>${res['counts'][id]} Files </span>
+					<span>${time}</span>
+					<button style="display:none" onclick={deltete_folder('${res['file_list'][id]}')} id="${res['file_list'][id] + "_btn"}">Xóa</button>
+				</div>`
+			}
+			document.getElementById("history").innerHTML = str
+			const folder = window.localStorage.getItem("folder")
+			document.getElementById(folder).style.backgroundColor = "#00ffff"
+			document.getElementById(folder + "_btn").style.display = "initial"
+		})
+}
+
+update_folder()
+
+setInterval(() => {
+	update_folder()
+}, 5000)
+
+async function deltete_folder(folder) {
+	result = await fetch(endpoint + "delete/" + folder, {
+		method: 'POST',
+	})
+	.then(res => {
+		update_folder()
+		return res.json()
+	})
+}
+
+document.querySelectorAll('.chngTech').forEach(match => {
+  	match.addEventListener('change',  (e) => {
+		window.localStorage.setItem("tech", e.target.value)
+	});
+})
+
+document.querySelectorAll('.chngLang').forEach(match => {
+  	match.addEventListener('change',  (e) => {
+		window.localStorage.setItem("lang", e.target.value)
+	});
+})
+
+document.getElementById("labelUpload").addEventListener('click', function () {
+	document.getElementById('fileUploadControl').click()
+});
+
+function uuidv4() {
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
+    (+c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> +c / 4).toString(16)
+  );
+}
+
+
+document.getElementById('fileUploadControl').addEventListener('change', function () {
+	for (file of this.files) {
+		exts = file.name.split(".")
+		ext = exts[exts.length - 1]
+		if (ext === "png" | ext === "jpg" | ext === "JPEG" | ext === 'jpeg' | file.type === "image/jpeg" | file.type === "image/png") {
+			allImages.push(file)
+		}
+	}
+	total = 0
+	realTotal = allImages.length
+	inputDir = this.files.length + " Tệp được chọn (có " + realTotal + " ảnh)";
+    document.getElementById("labelUpload").style.display = "none"; 
+    document.getElementById("buttonUpload").style.display = "initial";
+    document.getElementById("inputShow").innerText = inputDir;
+	document.getElementById("preview").src = URL.createObjectURL(allImages[0])
+	document.getElementById("filename").innerHTML = allImages[0].name
+});
+
+document.getElementById('buttonUpload').addEventListener('click', function () {
+	total = 0
+    realTotal = 1
+    allImages = []
+    inputDir = "0 Tệp được chọn";
+    document.getElementById("labelUpload").style.display = "initial"; 
+    document.getElementById("buttonUpload").style.display = "none"; 
+    document.getElementById("inputShow").innerText = inputDir;
+    document.getElementById('fileUploadControl').value = "";
+});
+
+document.getElementById('scan').addEventListener('click', async function () {
+	if (allImages.length == 0) alert("Vui lòng chọn thư mục input")
+	let scanAll=[]
+	total = 0
+	for (file of allImages) {
+		scanAll.push(scanOneFile(file))
+	}
+	let results = await Promise.all(scanAll);
+	get_current(allImages[current_index]).then(res => { draw_box() })
+})
+
+async function scanOneFile(file) {
+	const folder = window.localStorage.getItem("folder")
+	const tech = window.localStorage.getItem("tech")
+	const lang = window.localStorage.getItem("lang")
+	var data = new FormData()
+	data.append('file', file)
+	data.append('foldername', folder)
+	data.append('lang', lang)
+	data.append('tech', tech)
+	data.append('filename', file.name.split('.')[0])
+	result = await fetch(endpoint + "scan", {
+		method: 'POST',
+		body: data
+	})
+	.then(res => {
+		return res.json()
+	})
+	.then(res => {
+		total += 1
+		document.getElementById('progress').style.width = parseInt((total/realTotal)*100) + "%"
+		document.getElementById('progress').innerText = parseInt((total/realTotal)*100) + "%"
+		return res
+	}).catch(e => {
+		total += 1
+		document.getElementById('progress').style.width = parseInt((total/realTotal)*100) + "%"
+		document.getElementById('progress').innerText = parseInt((total/realTotal)*100) + "%"
+	})
+	return result
+}
+
+document.getElementById('next').addEventListener('click', async function () {
+	if (allImages.length == 0) alert("Vui lòng chọn thư mục input")
+	current_index += 1
+	if (current_index >= realTotal) {
+		current_index = realTotal - 1
+	}
+	document.getElementById("preview").src = URL.createObjectURL(allImages[current_index])
+})
+
+document.getElementById('prev').addEventListener('click', async function () {
+	if (allImages.length == 0) alert("Vui lòng chọn thư mục input")
+	current_index -= 1
+	if (current_index < 0) {
+		current_index = 0
+	}
+	document.getElementById("preview").src = URL.createObjectURL(allImages[current_index])
+})
+
+document.getElementById('generate').addEventListener('click', async function () {
+	const folder = window.localStorage.getItem("folder")
+	result = await fetch(endpoint + "generate/" + folder, {
+		method: 'POST',
+	})
+	.then(res => {
+		return res.json()
+	})
+	.then(res => {
+		if (res['message'] === "SUCCESS") {
+			alert("Kết xuất thành công !!!")
+		}
+	})
+})
+
+async function get_current(file) {
+	const folder = window.localStorage.getItem("folder")
+	document.getElementById("filename").innerText = file.name
+	current_text = await fetch(endpoint + "text/" + folder + "/" + file.name.split(".")[0]).then(res => res.json()).then(res => res['result'])
+	current_bbox = await fetch(endpoint + "bbox/" + folder + "/" + file.name.split(".")[0]).then(res => res.json()).then(res => res['result'])
+	current_order = await fetch(endpoint + "order/" + folder + "/" + file.name.split(".")[0]).then(res => res.json()).then(res => res['result'])
+	return folder
+}
+
+document.getElementById('reset').addEventListener('click', async function () {
+	if (allImages.length == 0) alert("Vui lòng chọn thư mục input")
+	current_order = []
+	draw_box()
+})
+
+document.addEventListener("keypress", function(event) {
+	console.log(event.keyCode)
+	if (event.keyCode == 48) {
+		if (allImages.length == 0) alert("Vui lòng chọn thư mục input")
+		current_order = []
+		draw_box()
+		const folder = window.localStorage.getItem("folder")
+		fetch(endpoint + "update/" + folder + "/" + allImages[current_index].name.split(".")[0], {
+			method: "POST",
+			body: JSON.stringify({
+				"order": current_order
+			})
+		})
+		.then(res => res.json())
+		.then(res => {
+			if(res.message === "SUCCESS") {
+				console.log("update success")
+				draw_box()
+			} else {
+				alert("Update không thành công")
+			}
+		})
+	}
+});
+
+document.onkeydown = checkKey;
+function checkKey(e) {
+    e = e || window.event;
+    if (e.keyCode == '37') {
+		if (allImages.length == 0) alert("Vui lòng chọn thư mục input")
+		current_index -= 1
+		if (current_index < 0) {
+			current_index = 0
+		}
+		document.getElementById("preview").src = URL.createObjectURL(allImages[current_index])
+    }
+    else if (e.keyCode == '39') {
+		if (allImages.length == 0) alert("Vui lòng chọn thư mục input")
+		current_index += 1
+		if (current_index >= realTotal) {
+			current_index = realTotal - 1
+		}
+		document.getElementById("preview").src = URL.createObjectURL(allImages[current_index])
+    }
+}
+
+function change_order(el) {
+	const folder = window.localStorage.getItem("folder")
+	if (current_order.includes(el.id) || current_order.includes(parseInt(el.id))) {
+		let index = current_order.indexOf(parseInt(el.id))
+		current_order.splice(index, 1)
+		// if (typeof current_order === 'number') {
+		// 	current_order = [current_order]
+		// }
+	} else {
+		current_order.push(parseInt(el.id))
+	}
+	fetch(endpoint + "update/" + folder + "/" + allImages[current_index].name.split(".")[0], {
+		method: "POST",
+		body: JSON.stringify({
+			"order": current_order
+		})
+	})
+	.then(res => res.json())
+	.then(res => {
+		if(res.message === "SUCCESS") {
+			console.log("update success")
+			draw_box()
+		} else {
+			alert("Update không thành công")
+		}
+	})
+	// .catch(e => {
+	// 	alert("Update không thành công")
+	// })
+}
+
+function change_text(el) {
+	const folder = window.localStorage.getItem("folder")
+	let texts = current_text
+	let orders = current_order
+	let id = el.id
+	texts[parseInt(id.split("_")[1])] = el.innerText
+	current_text = texts
+	fetch(endpoint + "update/" + folder + "/" + allImages[current_index].name.split(".")[0], {
+		method: "POST",
+		body: JSON.stringify({
+			"text": current_text
+		})
+	})
+	.then(res => res.json())
+	.then(res => {
+		if(res.message === "SUCCESS") {
+			console.log("update success")
+			draw_box()
+		} else {
+			alert("Update không thành công")
+		}
+	})
+	// .catch(e => {
+	// 	alert("Update không thành công")
+	// })
+}
+
+document.getElementById('preview').onload = function () {
+	get_current(allImages[current_index]).then(res => { draw_box() })
+}
+
+function draw_box() {
+	let texts = current_text
+	let bboxes = current_bbox
+	let orders = current_order
+	let text_boxes = ""
+	let x1, y1, width, height
+	let image_width = document.getElementById('preview').clientWidth
+	let real_width = document.getElementById('preview').naturalWidth
+	let ratio = image_width/real_width
+	console.log(ratio)
+	for (line in bboxes) {
+		if (bboxes[line] !== "") {
+			let values = bboxes[line]
+			x1 = parseFloat(values[0])
+			y1 = parseFloat(values[1])
+			let x2 = parseFloat(values[2])
+			let y2 = parseFloat(values[3])
+			width = x2 //- x1
+			height = y2 //- y1
+			text_boxes += `<div class="text-box" style="top:${y1*ratio}px; left:${x1*ratio}px; width:${width*ratio}px; height:${height*ratio}px;" id="${line}" onclick="change_order(this)" title=""></div>`
+		}
+	}
+	document.getElementById("wrap-result").innerHTML = text_boxes
+	str = ""
+	for (line in orders) {
+		num = parseInt(line) + 1
+		if (orders[line] !== "") {
+			document.getElementById(orders[line]).title = num
+		}
+		if (! (line == orders.length - 1 && orders[line] === "")) {
+			str += `<tr><td>${num}</td><td contenteditable="true" onchange="change_text(this)" id="text_${orders[line]}">${texts[orders[line]]}</td></tr>`
+		}
+	}
+	document.getElementById("table_body").innerHTML = str
+	fix_onChange_editable_elements()
+}
+
+function fix_onChange_editable_elements()
+{
+  var tags = document.querySelectorAll('[contenteditable=true][onChange]');//(requires FF 3.1+, Safari 3.1+, IE8+)
+  for (var i=tags.length-1; i>=0; i--) if (typeof(tags[i].onblur)!='function')
+  {
+    tags[i].onfocus = function()
+    {
+      this.data_orig=this.innerHTML;
+    };
+    tags[i].onblur = function()
+    {
+      if (this.innerHTML != this.data_orig)
+        this.onchange();
+      delete this.data_orig;
+    };
+  }
+}
+</script>
+</html>
