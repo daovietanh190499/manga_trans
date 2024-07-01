@@ -91,17 +91,7 @@
 		</button>
 		<span style="width:45%; display:flex; justify-content:center; align-items:center" id="inputShow">0 Tệp được chọn</span>
 	</div>
-	<div style="width:100%; padding-top:30px; display:flex; justify-content: space-between;">
-		<input type="radio" name="tech" value="MangaOCR" id="MangaOCR" checked class="chngTech">
-		<label for="mangaocr">Manga OCR</label><br>
-		<input type="radio" name="tech" value="GoogleVision" id="GoogleVision" class="chngTech">
-		<label for="googlevision">Google Vision</label><br>
 
-		<input type="radio" name="language" value="jp" id="jp" checked class="chngLang">
-		<label for="jp">Japanese</label><br>
-		<input type="radio" name="language" value="en" id="en" class="chngLang">
-		<label for="en">English</label><br>
-	</div>
 	<div style="width:100%; padding-top:30px">
 		<button style="width:100%; height:2.5rem" id="scan">
 			Tiến hành quét
@@ -178,18 +168,6 @@ let current_order = []
 
 if (!window.localStorage.getItem("folder") || window.localStorage.getItem("folder") === "") {
 	window.localStorage.setItem("folder", uuidv4())
-}
-
-if (!window.localStorage.getItem("tech") || window.localStorage.getItem("tech") === "") {
-	window.localStorage.setItem("tech", "MangaOCR")
-} else {
-	document.getElementById(window.localStorage.getItem("tech")).checked = true;
-}
-
-if (!window.localStorage.getItem("lang") || window.localStorage.getItem("lang") === "") {
-	window.localStorage.setItem("lang", "jp")
-} else {
-	document.getElementById(window.localStorage.getItem("lang")).checked = true;
 }
 
 function update_folder() {
