@@ -16,7 +16,7 @@ import os
 import re
 import glob
 import shutil
-from models import load_textdetector_model, dispatch_textdetector,  dispatch_inpainting, load_inpainting_model, OCRMIT48pxCTC
+from models import load_textdetector_model, dispatch_textdetector,  dispatch_inpainting, load_inpainting_model, OCRMIT48pxCTC, TextBlock, dispatch_rendering
 
 from openai import OpenAI
 
@@ -48,7 +48,6 @@ def chatgpt(bb_list, img):
         ymax = img.shape[0] if ymax >  img.shape[0] else ymax
 
         frame = img[int(ymin):int(ymax), int(xmin):int(xmax), :]
-
         content.append(
             {
                 "type": "image_url",
@@ -61,7 +60,7 @@ def chatgpt(bb_list, img):
     response = openai_client.chat.completions.create(
         model=MODEL,
         messages=[
-            {"role": "system", "content": "You are a helpful assistant, You can translate texts from images into English. The inputs will be multiple images with text on it. You have to only provide the answers respectively with the structure ascending_index_number_from_0_to_maximum_number_of_images # original text # the translated text. Do not adding more newline character. If there is no text to translate please use the sentence '...' as the translated text. If the original text is English, please use original text as translated text"},
+            {"role": "system", "content": "You are a helpful assistant, You can translate texts from images into Japanese. The inputs will be multiple images with text on it. You have to only provide the answers respectively with the structure ascending_index_number_from_0_to_maximum_number_of_images # original text # the translated text. The translated texts must be Japanese. Do not adding more newline character. If there is no text to translate please use the sentence '...' as the translated text. If the original text is Japanese, please use original text as translated text"},
             {"role": "user", "content": content}
         ],
         temperature=0.0,
@@ -69,11 +68,29 @@ def chatgpt(bb_list, img):
 
     return response.choices[0].message.content
 
+def draw_image(img, bboxes, texts):
+    from PIL import Image, ImageDraw, ImageFont
+    draw = ImageDraw.Draw(image)
+
+    for bbox, text in zip(bboxes, texts):
+        font_size = 24
+        font_family = "Arial"
+        font_color = (0, 0, 0)
+        text_align = "center"
+
+        font = ImageFont.truetype(font_family, font_size)
+        text_width, text_height = draw.textsize(text, font)
+        x = width // 2
+        y = height // 2
+        draw.text((x - text_width // 2, y - text_height // 2), text, font=font, fill=font_color)
+
+    # Save the image
+    return image
+
 def infer(img, imgb64, foldername, filename, lang, tech):
     separator = '@@@@@-mangatool-@@@@@'
     re_str = r'@@@@@-mangatool-@@@@@'
     mask, mask_refined, blk_list = dispatch_textdetector(img, use_cuda)
-    # ocr.ocr_blk_list(img, blk_list)
     torch.cuda.empty_cache()
 
     mask = cv2.dilate((mask > 170).astype('uint8')*255, np.ones((5,5), np.uint8), iterations=5)
@@ -82,8 +99,7 @@ def infer(img, imgb64, foldername, filename, lang, tech):
 
     img_inpainted =  dispatch_inpainting(True, False, use_cuda, img, ((mask + mask_refined) > 0).astype('uint8')*255, 2048)
     
-    contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    
+    bboxes = []
     filter_mask = np.zeros_like(mask)
     for i, blk in enumerate(blk_list):
         xmin, ymin, xmax, ymax = blk.xyxy
@@ -91,25 +107,8 @@ def infer(img, imgb64, foldername, filename, lang, tech):
         ymin = 0 if ymin < 0 else ymin
         xmax = img.shape[1] if xmax >  img.shape[1] else xmax
         ymax = img.shape[0] if ymax >  img.shape[0] else ymax
-        filter_mask[int(ymin):int(ymax), int(xmin):int(xmax)] = 1
+        bboxes.append([xmin, ymin, xmax - xmin, ymax - ymin])
 
-    bboxes = []
-    contours = sorted(contours, key=cv2.contourArea, reverse=True)
-    for i, contour in enumerate(contours):
-        bbox = cv2.boundingRect(contour)
-        xmin, ymin, w, h = bbox
-        xmax = xmin + w
-        ymax = ymin + h
-        xmin = 0 if xmin < 0 else xmin
-        ymin = 0 if ymin < 0 else ymin
-        xmax = img.shape[1] if xmax >  img.shape[1] else xmax
-        ymax = img.shape[0] if ymax >  img.shape[0] else ymax
-        # index = np.bincount(np.ravel(filter_mask[int(ymin):int(ymax), int(xmin):int(xmax)])).argmax()
-        index = np.sum(filter_mask[int(ymin):int(ymax), int(xmin):int(xmax)])
-        if index > 0:
-            bboxes.append(list(bbox))
-            filter_mask[int(ymin):int(ymax), int(xmin):int(xmax)] = 0
-    
     final_text = []
     final_bboxes = None
     for i, bbox in enumerate(bboxes):
@@ -120,9 +119,21 @@ def infer(img, imgb64, foldername, filename, lang, tech):
 
     print(response)
 
-    for sentence in response.split("\n"):
+    for i, sentence in enumerate(response.split("\n")):
         if len(sentence.strip()) > 0:
             final_text.append(sentence.strip().split("#")[2])
+            blk_list[i].text = sentence.strip().split("#")[2]
+            blk_list[i].translation = sentence.strip().split("#")[2]
+            if blk_list[i].angle <= 60:
+                blk_list[i].direction = 'vt'
+                blk_list[i].vertical = True
+                xmin, ymin, xmax, ymax = blk_list[i].xyxy
+                blk_list[i].xyxy = [xmin + blk_list[i].font_size, ymin - blk_list[i].font_size, xmax - blk_list[i].font_size, ymax + blk_list[i].font_size]
+            else:
+                blk_list[i].direction = 'hr'
+                blk_list[i].vertical = False
+
+    img_output = dispatch_rendering(img_inpainted, blk_list, "models/render/fonts/Arial-Unicode-Regular.ttf")
     
     text = separator.join(final_text)
     text_ref = separator.join(final_text)
@@ -133,12 +144,12 @@ def infer(img, imgb64, foldername, filename, lang, tech):
             os.mkdir('output/')
         if not os.path.exists('output/' + foldername + "/"):
             os.mkdir('output/' + foldername + "/")
-        cv2.imwrite('output/' + foldername + '/' + filename.split('.')[0] + '.png', img_inpainted.astype('uint8'))
-        with open('output/' + foldername + "/" + filename.split('.')[0] + '_text.txt', 'w+', encoding="utf-8") as f:
-            f.write(text)
-        f.close()
-        np.savetxt('output/' + foldername + '/' + filename.split('.')[0] + '_bbox.txt', final_bboxes.astype(int))
-        np.savetxt('output/' + foldername + '/' + filename.split('.')[0] + '_order.txt', np.array(range(len(final_bboxes))).astype(int), fmt="%d")
+        cv2.imwrite('output/' + foldername + '/' + filename.split('.')[0] + '.png', img_output.astype('uint8'))
+        # with open('output/' + foldername + "/" + filename.split('.')[0] + '_text.txt', 'w+', encoding="utf-8") as f:
+        #     f.write(text)
+        # f.close()
+        # np.savetxt('output/' + foldername + '/' + filename.split('.')[0] + '_bbox.txt', final_bboxes.astype(int))
+        # np.savetxt('output/' + foldername + '/' + filename.split('.')[0] + '_order.txt', np.array(range(len(final_bboxes))).astype(int), fmt="%d")
 
     return text, np.array2string(final_bboxes, precision=2, separator=',')
         
@@ -181,6 +192,10 @@ def img2base64(pil_image):
 @app.get("/")
 async def read_index():
     return FileResponse('index.html')
+
+@app.get("/file/{foldername}/{filename}")
+async def image_file(foldername, filename):
+    return FileResponse('output/' + foldername + '/' + filename + '.png')
 
 @app.get("/text/{foldername}/{filename}")
 async def text_file(foldername, filename):

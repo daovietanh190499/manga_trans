@@ -34,7 +34,9 @@
 			border: 2px dashed darkorange;
 			justify-content: center;
 			align-items: center;
-			color: rgba(255, 255, 255, .8);
+			text-align: center;
+			/* color: rgba(255, 255, 255, .8); */
+			color: black;
 			font-weight: 900;
         }
 		.text-box:hover {
@@ -117,11 +119,11 @@
 		<span style="width: 60%;" id="filename">
 			no name
 		</span>
-		<button style="width:30%; height:2.5rem" id="generate">
+		<!-- <button style="width:30%; height:2.5rem" id="generate">
 			Kết xuất
-		</button>
+		</button> -->
 	</div>
-	<div style="width:100%; padding-top:10px; display:flex; justify-content:space-between; height: 45vh; overflow-y: scroll;">
+	<!-- <div style="width:100%; padding-top:10px; display:flex; justify-content:space-between; height: 45vh; overflow-y: scroll;">
 		<table>
 			<tr>
 				<th>STT</th>
@@ -134,7 +136,7 @@
 				</tr>
 			</tbody>
 		</table>
-	</div>
+	</div> -->
     </div>
     <div style="width:50%; height:100%; padding: 20px">
 		<div class="wrap-img" >
@@ -161,6 +163,8 @@ let inputDir = "0 Tệp được chọn"
 let total = 0
 let realTotal = 1
 let allImages = []
+let allServerImages = []
+let allStatuses = []
 let current_index = 0
 let current_text = []
 let current_bbox = []
@@ -207,17 +211,17 @@ async function deltete_folder(folder) {
 	})
 }
 
-document.querySelectorAll('.chngTech').forEach(match => {
-  	match.addEventListener('change',  (e) => {
-		window.localStorage.setItem("tech", e.target.value)
-	});
-})
+// document.querySelectorAll('.chngTech').forEach(match => {
+//   	match.addEventListener('change',  (e) => {
+// 		window.localStorage.setItem("tech", e.target.value)
+// 	});
+// })
 
-document.querySelectorAll('.chngLang').forEach(match => {
-  	match.addEventListener('change',  (e) => {
-		window.localStorage.setItem("lang", e.target.value)
-	});
-})
+// document.querySelectorAll('.chngLang').forEach(match => {
+//   	match.addEventListener('change',  (e) => {
+// 		window.localStorage.setItem("lang", e.target.value)
+// 	});
+// })
 
 document.getElementById("labelUpload").addEventListener('click', function () {
 	document.getElementById('fileUploadControl').click()
@@ -236,6 +240,8 @@ document.getElementById('fileUploadControl').addEventListener('change', function
 		ext = exts[exts.length - 1]
 		if (ext === "png" | ext === "jpg" | ext === "JPEG" | ext === 'jpeg' | file.type === "image/jpeg" | file.type === "image/png") {
 			allImages.push(file)
+			allServerImages.push(null)
+			allStatuses.push(false)
 		}
 	}
 	total = 0
@@ -263,14 +269,14 @@ document.getElementById('scan').addEventListener('click', async function () {
 	if (allImages.length == 0) alert("Vui lòng chọn thư mục input")
 	let scanAll=[]
 	total = 0
-	for (file of allImages) {
-		scanAll.push(scanOneFile(file))
+	for (index in allImages) {
+		scanAll.push(scanOneFile(allImages[index], index))
 	}
 	let results = await Promise.all(scanAll);
-	get_current(allImages[current_index]).then(res => { draw_box() })
+	get_current(allImages[current_index])//.then(res => { draw_box() })
 })
 
-async function scanOneFile(file) {
+async function scanOneFile(file, index) {
 	const folder = window.localStorage.getItem("folder")
 	const tech = window.localStorage.getItem("tech")
 	const lang = window.localStorage.getItem("lang")
@@ -291,6 +297,8 @@ async function scanOneFile(file) {
 		total += 1
 		document.getElementById('progress').style.width = parseInt((total/realTotal)*100) + "%"
 		document.getElementById('progress').innerText = parseInt((total/realTotal)*100) + "%"
+		allServerImages[index] = endpoint + "file/" + folder + "/" + file.name.split(".")[0]
+		allStatuses[index] = true
 		return res
 	}).catch(e => {
 		total += 1
@@ -300,52 +308,61 @@ async function scanOneFile(file) {
 	return result
 }
 
-document.getElementById('next').addEventListener('click', async function () {
+function next_image() {
 	if (allImages.length == 0) alert("Vui lòng chọn thư mục input")
 	current_index += 1
 	if (current_index >= realTotal) {
 		current_index = realTotal - 1
 	}
-	document.getElementById("preview").src = URL.createObjectURL(allImages[current_index])
-})
+	document.getElementById("preview").src = (!allStatuses[current_index] ? URL.createObjectURL(allImages[current_index]) : allServerImages[current_index])
+}
 
-document.getElementById('prev').addEventListener('click', async function () {
+function prev_image() {
 	if (allImages.length == 0) alert("Vui lòng chọn thư mục input")
 	current_index -= 1
 	if (current_index < 0) {
 		current_index = 0
 	}
-	document.getElementById("preview").src = URL.createObjectURL(allImages[current_index])
+	document.getElementById("preview").src = (!allStatuses[current_index] ? URL.createObjectURL(allImages[current_index]) : allServerImages[current_index])
+}
+
+document.getElementById('next').addEventListener('click', async function () {
+	next_image()
 })
 
-document.getElementById('generate').addEventListener('click', async function () {
-	const folder = window.localStorage.getItem("folder")
-	result = await fetch(endpoint + "generate/" + folder, {
-		method: 'POST',
-	})
-	.then(res => {
-		return res.json()
-	})
-	.then(res => {
-		if (res['message'] === "SUCCESS") {
-			alert("Kết xuất thành công !!!")
-		}
-	})
+document.getElementById('prev').addEventListener('click', async function () {
+	prev_image()
 })
+
+// document.getElementById('generate').addEventListener('click', async function () {
+// 	const folder = window.localStorage.getItem("folder")
+// 	result = await fetch(endpoint + "generate/" + folder, {
+// 		method: 'POST',
+// 	})
+// 	.then(res => {
+// 		return res.json()
+// 	})
+// 	.then(res => {
+// 		if (res['message'] === "SUCCESS") {
+// 			alert("Kết xuất thành công !!!")
+// 		}
+// 	})
+// })
 
 async function get_current(file) {
 	const folder = window.localStorage.getItem("folder")
 	document.getElementById("filename").innerText = file.name
-	current_text = await fetch(endpoint + "text/" + folder + "/" + file.name.split(".")[0]).then(res => res.json()).then(res => res['result'])
-	current_bbox = await fetch(endpoint + "bbox/" + folder + "/" + file.name.split(".")[0]).then(res => res.json()).then(res => res['result'])
-	current_order = await fetch(endpoint + "order/" + folder + "/" + file.name.split(".")[0]).then(res => res.json()).then(res => res['result'])
+	document.getElementById("preview").src = (!allStatuses[current_index] ? URL.createObjectURL(allImages[current_index]) : allServerImages[current_index])
+	// current_text = await fetch(endpoint + "text/" + folder + "/" + file.name.split(".")[0]).then(res => res.json()).then(res => res['result'])
+	// current_bbox = await fetch(endpoint + "bbox/" + folder + "/" + file.name.split(".")[0]).then(res => res.json()).then(res => res['result'])
+	// current_order = await fetch(endpoint + "order/" + folder + "/" + file.name.split(".")[0]).then(res => res.json()).then(res => res['result'])
 	return folder
 }
 
 document.getElementById('reset').addEventListener('click', async function () {
 	if (allImages.length == 0) alert("Vui lòng chọn thư mục input")
 	current_order = []
-	draw_box()
+	//draw_box()
 })
 
 document.addEventListener("keypress", function(event) {
@@ -353,23 +370,23 @@ document.addEventListener("keypress", function(event) {
 	if (event.keyCode == 48) {
 		if (allImages.length == 0) alert("Vui lòng chọn thư mục input")
 		current_order = []
-		draw_box()
+		//draw_box()
 		const folder = window.localStorage.getItem("folder")
-		fetch(endpoint + "update/" + folder + "/" + allImages[current_index].name.split(".")[0], {
-			method: "POST",
-			body: JSON.stringify({
-				"order": current_order
-			})
-		})
-		.then(res => res.json())
-		.then(res => {
-			if(res.message === "SUCCESS") {
-				console.log("update success")
-				draw_box()
-			} else {
-				alert("Update không thành công")
-			}
-		})
+		// fetch(endpoint + "update/" + folder + "/" + allImages[current_index].name.split(".")[0], {
+		// 	method: "POST",
+		// 	body: JSON.stringify({
+		// 		"order": current_order
+		// 	})
+		// })
+		// .then(res => res.json())
+		// .then(res => {
+		// 	if(res.message === "SUCCESS") {
+		// 		console.log("update success")
+		// 		//draw_box()
+		// 	} else {
+		// 		alert("Update không thành công")
+		// 	}
+		// })
 	}
 });
 
@@ -377,138 +394,128 @@ document.onkeydown = checkKey;
 function checkKey(e) {
     e = e || window.event;
     if (e.keyCode == '37') {
-		if (allImages.length == 0) alert("Vui lòng chọn thư mục input")
-		current_index -= 1
-		if (current_index < 0) {
-			current_index = 0
-		}
-		document.getElementById("preview").src = URL.createObjectURL(allImages[current_index])
+		prev_image()
     }
     else if (e.keyCode == '39') {
-		if (allImages.length == 0) alert("Vui lòng chọn thư mục input")
-		current_index += 1
-		if (current_index >= realTotal) {
-			current_index = realTotal - 1
-		}
-		document.getElementById("preview").src = URL.createObjectURL(allImages[current_index])
+		next_image()
     }
 }
 
-function change_order(el) {
-	const folder = window.localStorage.getItem("folder")
-	if (current_order.includes(el.id) || current_order.includes(parseInt(el.id))) {
-		let index = current_order.indexOf(parseInt(el.id))
-		current_order.splice(index, 1)
+// function change_order(el) {
+// 	const folder = window.localStorage.getItem("folder")
+// 	if (current_order.includes(el.id) || current_order.includes(parseInt(el.id))) {
+// 		let index = current_order.indexOf(parseInt(el.id))
+// 		current_order.splice(index, 1)
 		// if (typeof current_order === 'number') {
 		// 	current_order = [current_order]
 		// }
-	} else {
-		current_order.push(parseInt(el.id))
-	}
-	fetch(endpoint + "update/" + folder + "/" + allImages[current_index].name.split(".")[0], {
-		method: "POST",
-		body: JSON.stringify({
-			"order": current_order
-		})
-	})
-	.then(res => res.json())
-	.then(res => {
-		if(res.message === "SUCCESS") {
-			console.log("update success")
-			draw_box()
-		} else {
-			alert("Update không thành công")
-		}
-	})
+	// } else {
+	// 	current_order.push(parseInt(el.id))
+	// }
+	// fetch(endpoint + "update/" + folder + "/" + allImages[current_index].name.split(".")[0], {
+	// 	method: "POST",
+	// 	body: JSON.stringify({
+	// 		"order": current_order
+	// 	})
+	// })
+	// .then(res => res.json())
+	// .then(res => {
+	// 	if(res.message === "SUCCESS") {
+	// 		console.log("update success")
+	// 		//draw_box()
+	// 	} else {
+	// 		alert("Update không thành công")
+	// 	}
+	// })
 	// .catch(e => {
 	// 	alert("Update không thành công")
 	// })
-}
+// }
 
-function change_text(el) {
-	const folder = window.localStorage.getItem("folder")
-	let texts = current_text
-	let orders = current_order
-	let id = el.id
-	texts[parseInt(id.split("_")[1])] = el.innerText
-	current_text = texts
-	fetch(endpoint + "update/" + folder + "/" + allImages[current_index].name.split(".")[0], {
-		method: "POST",
-		body: JSON.stringify({
-			"text": current_text
-		})
-	})
-	.then(res => res.json())
-	.then(res => {
-		if(res.message === "SUCCESS") {
-			console.log("update success")
-			draw_box()
-		} else {
-			alert("Update không thành công")
-		}
-	})
-	// .catch(e => {
-	// 	alert("Update không thành công")
-	// })
-}
+// function change_text(el) {
+// 	const folder = window.localStorage.getItem("folder")
+// 	let texts = current_text
+// 	let orders = current_order
+// 	let id = el.id
+// 	texts[parseInt(id.split("_")[1])] = el.innerText
+// 	current_text = texts
+// 	fetch(endpoint + "update/" + folder + "/" + allImages[current_index].name.split(".")[0], {
+// 		method: "POST",
+// 		body: JSON.stringify({
+// 			"text": current_text
+// 		})
+// 	})
+// 	.then(res => res.json())
+// 	.then(res => {
+// 		if(res.message === "SUCCESS") {
+// 			console.log("update success")
+// 			//draw_box()
+// 		} else {
+// 			alert("Update không thành công")
+// 		}
+// 	})
+// 	// .catch(e => {
+// 	// 	alert("Update không thành công")
+// 	// })
+// }
 
-document.getElementById('preview').onload = function () {
-	get_current(allImages[current_index]).then(res => { draw_box() })
-}
+// document.getElementById('preview').onload = function () {
+// 	get_current(allImages[current_index])//.then(res => { draw_box() })
+// }
 
-function draw_box() {
-	let texts = current_text
-	let bboxes = current_bbox
-	let orders = current_order
-	let text_boxes = ""
-	let x1, y1, width, height
-	let image_width = document.getElementById('preview').clientWidth
-	let real_width = document.getElementById('preview').naturalWidth
-	let ratio = image_width/real_width
-	console.log(ratio)
-	for (line in bboxes) {
-		if (bboxes[line] !== "") {
-			let values = bboxes[line]
-			x1 = parseFloat(values[0])
-			y1 = parseFloat(values[1])
-			let x2 = parseFloat(values[2])
-			let y2 = parseFloat(values[3])
-			width = x2 //- x1
-			height = y2 //- y1
-			text_boxes += `<div class="text-box" style="top:${y1*ratio}px; left:${x1*ratio}px; width:${width*ratio}px; height:${height*ratio}px;" id="${line}" onclick="change_order(this)" title=""></div>`
-		}
-	}
-	document.getElementById("wrap-result").innerHTML = text_boxes
-	str = ""
-	for (line in orders) {
-		num = parseInt(line) + 1
-		if (orders[line] !== "") {
-			document.getElementById(orders[line]).title = num
-		}
-		if (! (line == orders.length - 1 && orders[line] === "")) {
-			str += `<tr><td>${num}</td><td contenteditable="true" onchange="change_text(this)" id="text_${orders[line]}">${texts[orders[line]]}</td></tr>`
-		}
-	}
-	document.getElementById("table_body").innerHTML = str
-	fix_onChange_editable_elements()
-}
+// function draw_box() {
+// 	let texts = current_text
+// 	let bboxes = current_bbox
+// 	let orders = current_order
+// 	let text_boxes = ""
+// 	let x1, y1, width, height
+// 	let image_width = document.getElementById('preview').clientWidth
+// 	let real_width = document.getElementById('preview').naturalWidth
+// 	let ratio = image_width/real_width
+// 	console.log(ratio)
+// 	for (line in bboxes) {
+// 		if (bboxes[line] !== "") {
+// 			let values = bboxes[line]
+// 			x1 = parseFloat(values[0])
+// 			y1 = parseFloat(values[1])
+// 			let x2 = parseFloat(values[2])
+// 			let y2 = parseFloat(values[3])
+// 			width = x2 //- x1
+// 			height = y2 //- y1
+// 			text_boxes += `<div class="text-box" style="top:${y1*ratio}px; left:${x1*ratio}px; width:${width*ratio}px; height:${height*ratio}px; font-size:${width*ratio/8}px" id="${line}" onclick="change_order(this)" title="">${texts[orders[line]]}</div>`
+// 		}
+// 	}
+// 	// document.getElementById("wrap-result").innerHTML = text_boxes
+// 	str = ""
+// 	for (line in orders) {
+// 		num = parseInt(line) + 1
+// 		if (orders[line] !== "") {
+// 			document.getElementById(orders[line]).title = num
+// 		}
+// 		if (! (line == orders.length - 1 && orders[line] === "")) {
+// 			str += `<tr><td>${num}</td><td contenteditable="true" onchange="change_text(this)" id="text_${orders[line]}">${texts[orders[line]]}</td></tr>`
+// 		}
+// 	}
+// 	document.getElementById("table_body").innerHTML = str
+// 	fix_onChange_editable_elements()
+// }
 
-function fix_onChange_editable_elements()
-{
-  var tags = document.querySelectorAll('[contenteditable=true][onChange]');//(requires FF 3.1+, Safari 3.1+, IE8+)
-  for (var i=tags.length-1; i>=0; i--) if (typeof(tags[i].onblur)!='function')
-  {
-    tags[i].onfocus = function()
-    {
-      this.data_orig=this.innerHTML;
-    };
-    tags[i].onblur = function()
-    {
-      if (this.innerHTML != this.data_orig)
-        this.onchange();
-      delete this.data_orig;
-    };
-  }
-}
+// function fix_onChange_editable_elements()
+// {
+//   var tags = document.querySelectorAll('[contenteditable=true][onChange]');//(requires FF 3.1+, Safari 3.1+, IE8+)
+//   for (var i=tags.length-1; i>=0; i--) if (typeof(tags[i].onblur)!='function')
+//   {
+//     tags[i].onfocus = function()
+//     {
+//       this.data_orig=this.innerHTML;
+//     };
+//     tags[i].onblur = function()
+//     {
+//       if (this.innerHTML != this.data_orig)
+//         this.onchange();
+//       delete this.data_orig;
+//     };
+//   }
+// }
 </script>
 </html>

@@ -4,3 +4,7 @@ fastapi
 google-cloud-vision
 easyocr
 openai
+freetype-py
+pyhyphen
+unicodedata
+langcodes

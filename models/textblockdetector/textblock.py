@@ -213,6 +213,35 @@ class TextBlock(object):
         srgb = np.array(srgb) * num_lines
         self.bg_r, self.bg_g, self.bg_b = srgb
 
+    def get_translation_for_rendering(self):
+        text = self.translation
+        if self.direction.endswith('r'):
+            # The render direction is right to left so left-to-right
+            # text/number chunks need to be reversed to look normal.
+
+            text_list = list(text)
+            l2r_idx = -1
+
+            def reverse_sublist(l, i1, i2):
+                delta = i2 - i1
+                for j1 in range(i1, i2 - delta // 2):
+                    j2 = i2 - (j1 - i1) - 1
+                    l[j1], l[j2] = l[j2], l[j1]
+
+            for i, c in enumerate(text):
+                if not is_right_to_left_char(c) and is_valuable_char(c):
+                    if l2r_idx < 0:
+                        l2r_idx = i
+                elif l2r_idx >= 0 and i - l2r_idx > 1:
+                    # Reverse left-to-right characters for correct rendering
+                    reverse_sublist(text_list, l2r_idx, i)
+                    l2r_idx = -1
+            if l2r_idx >= 0 and i - l2r_idx > 1:
+                reverse_sublist(text_list, l2r_idx, len(text_list))
+
+            text = ''.join(text_list)
+        return text
+
     def get_font_colors(self, bgr=False):
         num_lines = len(self.lines)
         frgb = np.array([self.fg_r, self.fg_g, self.fg_b])
