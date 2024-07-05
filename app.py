@@ -134,7 +134,7 @@ def infer(img, imgb64, foldername, filename, lang, tech):
                 blk_list[i].direction = 'hr'
                 blk_list[i].vertical = False
 
-    img_output = dispatch_rendering(img_inpainted, blk_list, "models/render/fonts/Arial-Unicode-Regular.ttf")
+    img_output = dispatch_rendering(img_inpainted, blk_list, "fonts/MyFont.tff")
     
     text = separator.join(final_text)
     text_ref = separator.join(final_text)
