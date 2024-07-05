@@ -31,7 +31,7 @@ use_cuda = torch.cuda.is_available()
 
 load_inpainting_model(use_cuda, 'default')
 
-def chatgpt(bb_list, img):
+def chatgpt(bb_list, img, lang="Japanese"):
     content = [
         {   
             "type": "text", 
@@ -60,7 +60,7 @@ def chatgpt(bb_list, img):
     response = openai_client.chat.completions.create(
         model=MODEL,
         messages=[
-            {"role": "system", "content": "You are a helpful assistant, You can translate texts from images into Japanese. The inputs will be multiple images with text on it. You have to only provide the answers respectively with the structure ascending_index_number_from_0_to_maximum_number_of_images # original text # the translated text. The translated texts must be Japanese. Do not adding more newline character. If there is no text to translate please use the sentence '...' as the translated text. If the original text is Japanese, please use original text as translated text"},
+            {"role": "system", "content": f"You are a helpful assistant, You can translate texts from images into {lang}. The inputs will be multiple images with text on it. You have to only provide the answers respectively with the structure ascending_index_number_from_0_to_maximum_number_of_images # original text # the translated text. The translated texts must be {lang}. Do not adding more newline character. If there is no text to translate please use the sentence '...' as the translated text. If the original text is {lang}, please use original text as translated text"},
             {"role": "user", "content": content}
         ],
         temperature=0.0,
