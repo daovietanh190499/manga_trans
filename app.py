@@ -101,6 +101,7 @@ def infer(img, imgb64, foldername, filename, lang, tech):
     new_mask = np.zeros(img.shape[:2])
 
     area = []
+    fonts = []
     for i, blk in enumerate(blk_list):
         xmin, ymin, xmax, ymax = blk.xyxy
         xmin = 0 if xmin < 0 else xmin
@@ -108,8 +109,9 @@ def infer(img, imgb64, foldername, filename, lang, tech):
         xmax = img.shape[1] if xmax >  img.shape[1] else xmax
         ymax = img.shape[0] if ymax >  img.shape[0] else ymax
         area.append((xmax-xmin)*(ymax-ymin))
+        fonts.append(blk.font_size)
 
-    indexes = np.argsort(np.array(area).astype("float32"))[::-1]
+    indexes = np.argsort(np.array(fonts).astype("float32"))#[::-1]
     new_blk_list = [blk_list[i] for i in indexes.tolist()]
     blk_list = new_blk_list
 
