@@ -98,8 +98,23 @@ def infer(img, imgb64, foldername, filename, lang, tech):
     mask_refined = cv2.dilate(mask_refined, kernel, iterations=2)
 
     img_inpainted =  dispatch_inpainting(True, False, use_cuda, img, ((mask + mask_refined) > 0).astype('uint8')*255, 2048)
-    
+    new_mask = np.zeros(img.shape[:2])
+
+    area = []
+    for i, blk in enumerate(blk_list):
+        xmin, ymin, xmax, ymax = blk.xyxy
+        xmin = 0 if xmin < 0 else xmin
+        ymin = 0 if ymin < 0 else ymin
+        xmax = img.shape[1] if xmax >  img.shape[1] else xmax
+        ymax = img.shape[0] if ymax >  img.shape[0] else ymax
+        area.append((xmax-xmin)*(ymax-ymin))
+
+    indexes = np.argsort(np.array(area).astype("float32"))[::-1]
+    new_blk_list = [blk_list[i] for i in indexes.tolist()]
+    blk_list = new_blk_list
+
     bboxes = []
+    new_blk_list = []
     filter_mask = np.zeros_like(mask)
     for i, blk in enumerate(blk_list):
         xmin, ymin, xmax, ymax = blk.xyxy
@@ -107,7 +122,13 @@ def infer(img, imgb64, foldername, filename, lang, tech):
         ymin = 0 if ymin < 0 else ymin
         xmax = img.shape[1] if xmax >  img.shape[1] else xmax
         ymax = img.shape[0] if ymax >  img.shape[0] else ymax
-        bboxes.append([xmin, ymin, xmax - xmin, ymax - ymin])
+        fill_area = np.sum(new_mask[int(ymin):int(ymax), int(xmin):int(xmax)])
+        if fill_area/((xmax-xmin)*(ymax-ymin)) <= 20:
+            new_mask[int(ymin):int(ymax), int(xmin):int(xmax)] = 1
+            bboxes.append([xmin, ymin, xmax - xmin, ymax - ymin])
+            new_blk_list.append(blk)
+
+    blk_list = new_blk_list
 
     final_text = []
     final_bboxes = None
