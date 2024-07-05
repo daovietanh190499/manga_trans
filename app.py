@@ -66,7 +66,7 @@ def chatgpt(bb_list, img):
         temperature=0.0,
     )
 
-    return response.choices[0].message.content.encode("utf-8")
+    return response.choices[0].message.content
 
 def draw_image(img, bboxes, texts):
     from PIL import Image, ImageDraw, ImageFont
@@ -116,8 +116,6 @@ def infer(img, imgb64, foldername, filename, lang, tech):
         final_bboxes = np.concatenate((final_bboxes, np.array([[xmin, ymin, w, h]]))) if not final_bboxes is None else np.array([[xmin, ymin, w, h]])
     
     response = chatgpt(bboxes, img)
-
-    print(response)
 
     for i, sentence in enumerate(response.split("\n")):
         if len(sentence.strip()) > 0:
