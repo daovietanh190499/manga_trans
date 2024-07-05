@@ -123,7 +123,7 @@ def infer(img, imgb64, foldername, filename, lang, tech):
         xmax = img.shape[1] if xmax >  img.shape[1] else xmax
         ymax = img.shape[0] if ymax >  img.shape[0] else ymax
         fill_area = np.sum(new_mask[int(ymin):int(ymax), int(xmin):int(xmax)])
-        if fill_area/((xmax-xmin)*(ymax-ymin)) <= 20:
+        if fill_area/((xmax-xmin)*(ymax-ymin)) <= 0.2:
             new_mask[int(ymin):int(ymax), int(xmin):int(xmax)] = 1
             bboxes.append([xmin, ymin, xmax - xmin, ymax - ymin])
             new_blk_list.append(blk)
