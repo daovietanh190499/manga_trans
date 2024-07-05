@@ -128,6 +128,11 @@ class TextBlock(object):
         min_y = polygons[:, 1::2].min()
         max_x = polygons[:, ::2].max()
         max_y = polygons[:, 1::2].max()
+        if self.vertical and self.angle <= 60:
+            min_x = min_x + self.font_size
+            min_y = min_y - self.font_size
+            max_x = max_x - self.font_size
+            max_y = max_y + self.font_size
         min_bbox = np.array([[min_x, min_y, max_x, min_y, max_x, max_y, min_x, max_y]])
         if angled and rotate_back:
             min_bbox = rotate_polygons(center, min_bbox, -self.angle)

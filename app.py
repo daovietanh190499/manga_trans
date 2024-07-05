@@ -123,7 +123,6 @@ def infer(img, imgb64, foldername, filename, lang, tech):
             blk_list[i].text = sentence.strip().split("#")[2]
             blk_list[i].translation = sentence.strip().split("#")[2]
             if blk_list[i].angle <= 60:
-                print(blk_list[i].min_rect())
                 blk_list[i].direction = 'vt'
                 blk_list[i].vertical = True
                 xmin, ymin, xmax, ymax = blk_list[i].xyxy
