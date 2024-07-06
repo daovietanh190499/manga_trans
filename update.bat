@@ -1,3 +1,2 @@
 git pull
-env/Scripts/activate
-pip install -r requirement.txt
+env/Scripts/python -m pip install -r requirement.txt
