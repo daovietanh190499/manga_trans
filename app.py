@@ -111,7 +111,9 @@ def infer(img, imgb64, foldername, filename, lang, tech):
         area.append((xmax-xmin)*(ymax-ymin))
         fonts.append(blk.font_size)
 
-    indexes = np.argsort(np.array(fonts).astype("float32"))#[::-1]
+    indexes = np.lexsort((-np.array(area), np.array(fonts)))
+
+    # indexes = np.argsort(np.array(fonts).astype("float32"))#[::-1]
     new_blk_list = [blk_list[i] for i in indexes.tolist()]
     blk_list = new_blk_list
 
