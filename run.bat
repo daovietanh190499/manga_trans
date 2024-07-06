@@ -1,1 +1,1 @@
-env/Scripts/python app.py
+env\Scripts\python app.py
