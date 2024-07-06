@@ -1,2 +1,2 @@
-env\Scripts\activate
-env\Scripts\python app.py
+env/Scripts/activate
+env/Scripts/python app.py
